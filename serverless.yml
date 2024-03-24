@@ -1,0 +1,93 @@
+service: aws-node-http-swapi
+frameworkVersion: "3"
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource:
+        - ${env:ARN_DYNAMODB_TABLE}
+
+  environment:
+    SWAPI_API: ${env:SWAPI_API}
+
+functions:
+  people:
+    handler: src/handlers/swapiPeopleHandler.getSwapiPeopleHandler
+    events:
+      - httpApi:
+          path: /swipe/people
+          method: get
+  planets:
+    handler: src/handlers/swapiPlanetsHandler.getSwapiPlanetHandler
+    events:
+      - httpApi:
+          path: /swipe/planets
+          method: get
+  user:
+    handler: src/handlers/userCreateHandler.userCreateHandler
+    events:
+      - httpApi:
+          path: /users
+          method: post
+  get-user:
+    handler: src/handlers/getUserHandler.getUserHandler
+    events:
+      - httpApi:
+          path: /users
+          method: get
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+
+custom:
+  esbuild:
+    bundle: true
+    minify: true
+    watch:
+      pattern: ["src/**/*.ts"]
+      ignore: ["temp/**/*"]
+  serverless-offline:
+    httpPort: 4000 # Puerto HTTP para el servidor local
+    lambdaPort: 3002 # Puerto para invocar funciones Lambda localmente
+    pattern: "src/**/*.ts"
+    ignore: [.build, "build", "node_modules", ".serverless"]
+
+package:
+  include:
+    - "node_modules/aws-sdk/**"
+    - "node_modules/axios/**"
+    - "node_modules/uuid/**"
+    - "node_modules/buffer/**"
+    - "node_modules/events/**"
+    - "node_modules/ieee754/**"
+    - "node_modules/jmespath/**"
+    - "node_modules/querystring/**"
+    - "node_modules/sax/**"
+    - "node_modules/url/**"
+    - "node_modules/util/**"
+    - "node_modules/xml2js/**"
+    - "node_modules/xmlbuilder/**"
+
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: usersTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
